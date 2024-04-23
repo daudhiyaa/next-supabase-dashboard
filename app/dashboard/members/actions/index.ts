@@ -34,7 +34,8 @@ export async function createMember(data: {
   } else {
     const resInsertMember = await supabaseAdmin.from('member').insert({
       name: data.name,
-      id: resCreateAcc.data.user?.id
+      id: resCreateAcc.data.user?.id,
+      email: data.email
     });
 
     if (resInsertMember.error) {
@@ -54,8 +55,18 @@ export async function createMember(data: {
   }
 }
 
-export async function updateMemberById(id: string) {
-  console.log('update member');
+export async function updateMemberBasicById(
+  id: string,
+  data: { name: string }
+) {
+  const supabaseServerClient = await createSupbaseServerClient();
+  const res = await supabaseServerClient
+    .from('member')
+    .update(data)
+    .eq('id', id);
+
+  revalidatePath('/dashboard/member');
+  return JSON.stringify(res);
 }
 
 export async function deleteMemberById(user_id: string) {

@@ -4,8 +4,9 @@ import AccountForm from './AccountForm';
 import AdvanceForm from './AdvanceForm';
 import { cn } from '@/lib/utils';
 import { useUserStore } from '@/lib/store/user';
+import { IPermission } from '@/lib/types';
 
-export default function EditForm() {
+export default function EditForm({ permission }: { permission: IPermission }) {
   const user = useUserStore.getState().user;
   const isAdmin = user?.user_metadata.role === 'admin';
 
@@ -22,15 +23,15 @@ export default function EditForm() {
         )}
       </TabsList>
       <TabsContent value='basic'>
-        <BasicForm />
+        <BasicForm permission={permission} />
       </TabsContent>
       {isAdmin && (
         <>
           <TabsContent value='account'>
-            <AccountForm />
+            <AccountForm permission={permission} />
           </TabsContent>
           <TabsContent value='advance'>
-            <AdvanceForm />
+            <AdvanceForm permission={permission} />
           </TabsContent>
         </>
       )}
