@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { readMembers } from '../actions';
 import { IPermission } from '@/lib/types';
 import { useUserStore } from '@/lib/store/user';
+import DeleteMember from './DeleteMember';
 
 export default async function ListOfMembers() {
   const { data: permissions } = await readMembers();
@@ -54,12 +55,7 @@ export default async function ListOfMembers() {
             </div>
 
             <div className='flex gap-2 items-center'>
-              {isAdmin && (
-                <Button variant='outline'>
-                  <TrashIcon />
-                  Delete
-                </Button>
-              )}
+              {isAdmin && <DeleteMember user_id={permission.member.id} />}
 
               <EditMember />
             </div>

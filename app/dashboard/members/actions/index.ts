@@ -2,7 +2,7 @@
 
 import { readUserSession } from '@/lib/actions';
 import { createSupabaseAdmin, createSupbaseServerClient } from '@/lib/supabase';
-import { unstable_noStore } from 'next/cache';
+import { revalidatePath, unstable_noStore } from 'next/cache';
 
 export async function createMember(data: {
   name: string;
@@ -29,7 +29,7 @@ export async function createMember(data: {
     }
   });
 
-  if (resCreateAcc.error) {
+  if (resCreateAcc.error?.message) {
     throw new Error(resCreateAcc.error.message);
   } else {
     const resInsertMember = await supabaseAdmin.from('member').insert({
@@ -48,6 +48,7 @@ export async function createMember(data: {
           status: data.status
         });
 
+      revalidatePath('/dashboard/member');
       return JSON.stringify(resInsertPermission);
     }
   }
@@ -57,7 +58,30 @@ export async function updateMemberById(id: string) {
   console.log('update member');
 }
 
-export async function deleteMemberById(id: string) {}
+export async function deleteMemberById(user_id: string) {
+  // admin only
+  const { data: userSession } = await readUserSession();
+  if (userSession.session?.user.user_metadata.role !== 'admin') {
+    return JSON.stringify({ error: { message: 'Unauthorized' } });
+  }
+
+  // delete account
+  const supabaseAdmin = await createSupabaseAdmin();
+  const resDeleteAcc = await supabaseAdmin.auth.admin.deleteUser(user_id);
+
+  if (resDeleteAcc.error?.message) {
+    return JSON.stringify(resDeleteAcc);
+  } else {
+    const supabaseServerClient = await createSupbaseServerClient();
+    const res = await supabaseServerClient
+      .from('member')
+      .delete()
+      .eq('id', user_id);
+
+    revalidatePath('/dashboard/member');
+    return JSON.stringify(res);
+  }
+}
 
 export async function readMembers() {
   unstable_noStore();
