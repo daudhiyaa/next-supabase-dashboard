@@ -55,7 +55,7 @@ export async function createMember(data: {
   }
 }
 
-export async function updateMemberBasicById(
+export async function updateMemberBasicInfoById(
   id: string,
   data: { name: string }
 ) {
@@ -67,6 +67,40 @@ export async function updateMemberBasicById(
 
   revalidatePath('/dashboard/member');
   return JSON.stringify(res);
+}
+
+export async function updateMemberAdvanceInfoById(
+  permission_id: string,
+  user_id: string,
+  data: {
+    role: 'admin' | 'user';
+    status: 'active' | 'resigned';
+  }
+) {
+  const { data: userSession } = await readUserSession();
+  if (userSession.session?.user.user_metadata.role !== 'admin') {
+    return JSON.stringify({ error: { message: 'Unauthorized' } });
+  }
+
+  const supabaseAdmin = await createSupabaseAdmin();
+
+  // update account
+  const resUpdateAcc = await supabaseAdmin.auth.admin.updateUserById(user_id, {
+    user_metadata: { role: data.role }
+  });
+
+  if (resUpdateAcc.error?.message) {
+    return JSON.stringify(resUpdateAcc);
+  } else {
+    const supabaseServerClient = await createSupbaseServerClient();
+    const res = await supabaseServerClient
+      .from('permission')
+      .update(data)
+      .eq('id', permission_id);
+
+    revalidatePath('/dashboard/member');
+    return JSON.stringify(res);
+  }
 }
 
 export async function deleteMemberById(user_id: string) {

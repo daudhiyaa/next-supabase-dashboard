@@ -19,7 +19,7 @@ import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { cn } from '@/lib/utils';
 import { IPermission } from '@/lib/types';
 import { useTransition } from 'react';
-import { updateMemberBasicById } from '../../actions';
+import { updateMemberBasicInfoById } from '../../actions';
 
 const FormSchema = z.object({
   name: z.string().min(2, {
@@ -39,7 +39,7 @@ export default function BasicForm({ permission }: { permission: IPermission }) {
 
   function onSubmit(data: z.infer<typeof FormSchema>) {
     startTransition(async () => {
-      const res = await updateMemberBasicById(permission.member.id, data);
+      const res = await updateMemberBasicInfoById(permission.member.id, data);
       const { error } = JSON.parse(res);
 
       if (error?.message) {
@@ -81,7 +81,7 @@ export default function BasicForm({ permission }: { permission: IPermission }) {
           variant='outline'>
           Update{' '}
           <AiOutlineLoading3Quarters
-            className={cn(' animate-spin', 'hidden')}
+            className={cn(' animate-spin', { hidden: !isPending })}
           />
         </Button>
       </form>
