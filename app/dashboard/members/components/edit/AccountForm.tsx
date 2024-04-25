@@ -18,6 +18,8 @@ import { toast } from '@/components/ui/use-toast';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { cn } from '@/lib/utils';
 import { IPermission } from '@/lib/types';
+import { useTransition } from 'react';
+import { updateMemberAccountById } from '../../actions';
 
 const FormSchema = z
   .object({
@@ -35,6 +37,8 @@ export default function AccountForm({
 }: {
   permission: IPermission;
 }) {
+  const [isPending, startTransition] = useTransition();
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -45,13 +49,28 @@ export default function AccountForm({
   });
 
   function onSubmit(data: z.infer<typeof FormSchema>) {
-    toast({
-      title: 'You submitted the following values:',
-      description: (
-        <pre className='mt-2 w-[340px] rounded-md bg-slate-950 p-4'>
-          <code className='text-white'>{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      )
+    startTransition(async () => {
+      const res = await updateMemberAccountById(
+        permission.id,
+        permission.member_id,
+        data
+      );
+      const { error } = JSON.parse(res);
+
+      if (error?.message) {
+        toast({
+          title: 'Failed to update',
+          description: (
+            <pre className='mt-2 w-[340px] rounded-md bg-slate-950 p-4'>
+              <code className='text-white'>{error?.message}</code>
+            </pre>
+          )
+        });
+      } else {
+        toast({
+          title: 'Successfully update'
+        });
+      }
     });
   }
 
@@ -76,6 +95,7 @@ export default function AccountForm({
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name='password'
@@ -93,6 +113,7 @@ export default function AccountForm({
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name='confirm'
@@ -110,13 +131,14 @@ export default function AccountForm({
             </FormItem>
           )}
         />
+
         <Button
           type='submit'
           className='flex gap-2 items-center w-full'
           variant='outline'>
           Update
           <AiOutlineLoading3Quarters
-            className={cn(' animate-spin', 'hidden')}
+            className={cn(' animate-spin', { hidden: !isPending })}
           />
         </Button>
       </form>

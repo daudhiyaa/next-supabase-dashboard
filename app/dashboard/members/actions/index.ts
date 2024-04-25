@@ -4,6 +4,12 @@ import { readUserSession } from '@/lib/actions';
 import { createSupabaseAdmin, createSupbaseServerClient } from '@/lib/supabase';
 import { revalidatePath, unstable_noStore } from 'next/cache';
 
+/**
+ * * CREATE MEMBER
+ * @param data
+ * @returns
+ */
+
 export async function createMember(data: {
   name: string;
   role: 'user' | 'admin';
@@ -55,19 +61,34 @@ export async function createMember(data: {
   }
 }
 
+/**
+ * * UPDATE MEMBER BASIC INFO
+ * @param member_id
+ * @param data
+ * @returns
+ */
+
 export async function updateMemberBasicInfoById(
-  id: string,
+  member_id: string,
   data: { name: string }
 ) {
   const supabaseServerClient = await createSupbaseServerClient();
   const res = await supabaseServerClient
     .from('member')
     .update(data)
-    .eq('id', id);
+    .eq('id', member_id);
 
   revalidatePath('/dashboard/member');
   return JSON.stringify(res);
 }
+
+/**
+ * * UPDATE MEMBER ADVANCE INFO
+ * @param permission_id
+ * @param user_id
+ * @param data
+ * @returns
+ */
 
 export async function updateMemberAdvanceInfoById(
   permission_id: string,
@@ -103,6 +124,61 @@ export async function updateMemberAdvanceInfoById(
   }
 }
 
+/**
+ * * UPDATE MEMBER ACCOUNT
+ * @param user_id
+ * @param data
+ * @returns
+ */
+
+export async function updateMemberAccountById(
+  user_id: string,
+  data: {
+    email: string;
+    password?: string | undefined;
+    confirm?: string | undefined;
+  }
+) {
+  const { data: userSession } = await readUserSession();
+  if (userSession.session?.user.user_metadata.role !== 'admin') {
+    return JSON.stringify({ error: { message: 'Unauthorized' } });
+  }
+
+  let updateObject: {
+    email: string;
+    password?: string | undefined;
+  } = { email: data.email };
+
+  if (data.password) {
+    updateObject.password = data.password;
+  }
+
+  const supabaseAdmin = await createSupabaseAdmin();
+  const resUpdateAcc = await supabaseAdmin.auth.admin.updateUserById(
+    user_id,
+    updateObject
+  );
+
+  if (resUpdateAcc.error?.message) {
+    return JSON.stringify(resUpdateAcc);
+  } else {
+    const supabaseServerClient = await createSupbaseServerClient();
+    const res = await supabaseServerClient
+      .from('member')
+      .update({ email: data.email })
+      .eq('id', user_id);
+
+    revalidatePath('/dashboard/member');
+    return JSON.stringify(res);
+  }
+}
+
+/**
+ * * DELETE MEMBER
+ * @param user_id
+ * @returns
+ */
+
 export async function deleteMemberById(user_id: string) {
   // admin only
   const { data: userSession } = await readUserSession();
@@ -127,6 +203,11 @@ export async function deleteMemberById(user_id: string) {
     return JSON.stringify(res);
   }
 }
+
+/**
+ * * FETCH / READ MEMBERS
+ * @returns
+ */
 
 export async function readMembers() {
   unstable_noStore();
